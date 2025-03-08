@@ -54,7 +54,8 @@ def start():
     content = []
     for header in headers:
         print(f"Generation Begin for {header}")
-        content = contentGen(topic,header)
+        contentgenerated = contentGen(topic,header)
+        content.append(f"Header:[{header}] | Content:[{contentgenerated}]")
         print("Done")
     print(content)
     print(" ")
@@ -172,13 +173,12 @@ def content2html(topic,headers,contents):
             {
                 "role": "system",
                 "content": (
-                    "You are a system that generates Appealing HTML code based on the prompt. The content will be passed as 2 lists, "
-                    "corresponding to eachother."
-                    "EG: {header1,header2,...},{content1,content2,...}"
-                    "Dont generate anything else besides the HTML code"
+                    "You are a system that generates Eye Appealing HTML code based on the prompt. The content will be passed as 1 list,"
+                    "EG:[Header:[Introduction] | Content:[Neural networks are a foundational component]"
+                    "Dont generate anything else besides the HTML code. Include all text in the parameters. Give as plaintext "
                 ),
             },
-            {"role": "user", "content": f"Topic: {topic} Headers: {headers}, Content: {contents}"},
+            {"role": "user", "content": f"Topic: {topic} Contents: {contents}"},
         ],
         model="gpt-4o-2024-08-06",
     )
