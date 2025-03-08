@@ -30,6 +30,10 @@ def start():
     print(f"Generating your {level} course on {topic}.")
     courses = course(level, topic)
     print(courses)
+
+    #To deal with the brackets []
+    courses = courses.strip().replace('[', '').replace(']', '')
+
     course_list = courses.split(",")
 
     print("Courses Tailored for you: ")
