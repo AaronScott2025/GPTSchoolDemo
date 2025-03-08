@@ -59,7 +59,7 @@ def start():
     print(content)
     print(" ")
     print("Making it nice...")
-    html = content2html(topic,header,content)
+    html = content2html(topic,content)
     with open('Generated Coursework.html', 'w', newline='') as file:
         file.write(html)
     print("Coursework Created Successfully")
@@ -166,22 +166,45 @@ def contentGen(topic,header):
     )
     return chat_completion.choices[0].message.content
 
-def content2html(topic,headers,contents):
-    chat_completion = client.chat.completions.create(
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "You are a system that generates Eye Appealing HTML code based on the prompt. The content will be passed as 1 list,"
-                    "EG:[Header:[Introduction] | Content:[Neural networks are a foundational component]"
-                    "Dont generate anything else besides the HTML code. Include all text in the parameters. Give as plaintext "
-                ),
-            },
-            {"role": "user", "content": f"Topic: {topic} Contents: {contents}"},
-        ],
-        model="gpt-4o-2024-08-06",
-    )
-    return chat_completion.choices[0].message.content
+def content2html(topic, content_list):
+    html_template = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>{topic}</title>
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                margin: 20px;
+            }}
+            h1 {{
+                color: #333;
+            }}
+            h2 {{
+                color: #555;
+                margin-top: 30px;
+            }}
+            p {{
+                margin: 10px 0;
+            }}
+        </style>
+    </head>
+    <body>
+        <h1>{topic}</h1>
+        {content_blocks}
+    </body>
+    </html>
+    """
+
+    content_blocks = ""
+    for item in content_list:
+        header_content = item.split(" | ")
+        header = header_content[0].replace("Header:[", "").replace("]", "")
+        content = header_content[1].replace("Content:[", "").replace("]", "")
+        content_blocks += f"<h2>{header}</h2>\n<p>{content}</p>\n"
+
+    return html_template.format(topic=topic, content_blocks=content_blocks)
 
 start()
 
