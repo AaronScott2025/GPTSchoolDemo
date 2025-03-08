@@ -1,8 +1,6 @@
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
-import re
-import json
 import csv
 env_path = os.path.join(os.getcwd(), '.env')
 
