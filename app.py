@@ -3,6 +3,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import re
 import json
+import csv
 env_path = os.path.join(os.getcwd(), '.env')
 
 load_dotenv(dotenv_path=env_path)
@@ -26,20 +27,45 @@ def start():
         topicSentiment = topicSentiment.split(',')
 
     level = input(f"Given {topic}, how would you say your standing is in this topic (EG: Beginner, Intermediate, Advanced, etc): ")
-
     print(f"Generating your {level} course on {topic}.")
     courses = course(level, topic)
+    print(courses)
+    course_list = courses.split(",")
 
-    try:
-        course_list = re.findall(r'"(.*?)"', courses)
-        print("Courses Tailored for you: ")
-        print(" ")
-        x = 1
-        for c in course_list:
-            print(f"Course {x}: {c}")
-            x=x+1
-    except json.JSONDecodeError as e:
-        print("Failed to decode JSON:", e)
+    print("Courses Tailored for you: ")
+    print(" ")
+    for i, c in enumerate(course_list, start=1):
+        print(f"Course {i}: {c}")
+
+    with open('Generated Courses.csv', 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(["Course Number", "Course Name"])
+        for i, z in enumerate(course_list):
+            writer.writerow([i + 1, z])
+
+    print(" ")
+    print("Generating work for 1st course...")
+    print(" ")
+    headers = courseHeaders(course_list[0])
+    print(f"Headers: {headers}")
+    print(" ")
+    headers = headers.split(",")
+    content = []
+    for header in headers:
+        print(f"Generation Begin for {header}")
+        content = contentGen(topic,header)
+        print("Done")
+    print(content)
+    print(" ")
+    print("Making it nice...")
+    html = content2html(topic,header,content)
+    with open('Generated Coursework.html', 'w', newline='') as file:
+        file.write(html)
+    print("Coursework Created Successfully")
+
+
+
+
 
 #Evaluates the topic, to see if it needs to be narrowed down
 def topicEvaluation(topic):
@@ -73,7 +99,7 @@ def topicEvaluation(topic):
         ],
         model="gpt-4o-2024-08-06",
     )
-    return (chat_completion.choices[0].message.content)
+    return chat_completion.choices[0].message.content
 
 # Gets 10 to 12 courses on the topic
 def course(level, topic):
@@ -85,16 +111,77 @@ def course(level, topic):
                     "You are a system that needs to generate names for a 10 to 12 course workflow for a student. "
                     "The courses need to be for a course at a level. The courses should be in chronological order in "
                     "which the student should learn them. EG: Entry level course first, Advanced course last. "
-                    "Don't use any additional text outside of the JSON format."
+                    "Don't use any additional text outside of the Array."
                 ),
             },
             {"role": "user", "content": f'Topic = {topic},Level = {level}'},
         ],
         model="gpt-4o-2024-08-06",
     )
-    print (topic)
     return chat_completion.choices[0].message.content
 
+def courseHeaders(coursework):
+    chat_completion = client.chat.completions.create(
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a system that generates a detailed and informative coursework on the prompted course."
+                    "You need to generate headers for everything that may be relevant to the prompted course. Return only"
+                    "a comma separated list of course names, and no other words. These captions should be informative only, not"
+                    "hands on"
+                    "Example:"
+                    "Input: 'Course: Introduction to punctuation'"
+                    "Output:"
+                    "Introduction, Periods, Commas, Semicolons, Colons, Question Marks, Exclamation Points, Quotation Marks, Apostrophes, Parentheses, Dashes, Hyphens, Ellipses, Punctuation Practice"
+                )
+            },
+            {"role": "user", "content": f"Course: {coursework}"},  # Removed unnecessary {"text": ...}
+        ],
+        model="gpt-4o-2024-08-06",
+    )
+    return chat_completion.choices[0].message.content
+
+
+
+def contentGen(topic,header):
+    chat_completion = client.chat.completions.create(
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a system that generates a detailed and informative coursework on the prompted course."
+                    "You need to generate content for the prompted header, and the content should be 3 to 6 paragraphs long,"
+                    "without generating new headers, and should vary in size depending on the requirements of the topic"
+                    "Example:"
+                    "Input: 'Topic: Punctuation, Header: Dashes"
+                    "Output:"
+                    "Dashes are versatile punctuation marks that can be used to create emphasis, add information, or connect ideas. They come in two main forms: the en dash (–) and the em dash (—). The en dash is shorter and is typically used to show ranges, such as 'pages 10–15' or 'June–August.' The em dash is longer and is often used to create a strong break in a sentence or to set off parenthetical information. Using em dashes can add a dramatic flair to your writing, making certain elements stand out. For example, 'She finally reached the summit—after hours of grueling climbing—and felt an overwhelming sense of accomplishment.' In this sentence, the em dashes emphasize the effort it took to reach the summit. Em dashes can also replace commas, parentheses, or colons, providing a more informal and dynamic feel to your writing. However, it's essential not to overuse dashes, as they can make your writing appear choppy or disjointed. Use them sparingly and purposefully to maintain clarity and coherence. When used correctly, dashes can enhance your writing by adding emphasis and variety, making your text more engaging and enjoyable to read."
+                ),
+            },
+            {"role": "user", "content": f"Topic: {topic}, Header: {header}"},
+        ],
+        model="gpt-4o-2024-08-06",
+    )
+    return chat_completion.choices[0].message.content
+
+def content2html(topic,headers,contents):
+    chat_completion = client.chat.completions.create(
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a system that generates Appealing HTML code based on the prompt. The content will be passed as 2 lists, "
+                    "corresponding to eachother."
+                    "EG: {header1,header2,...},{content1,content2,...}"
+                    "Dont generate anything else besides the HTML code"
+                ),
+            },
+            {"role": "user", "content": f"Topic: {topic} Headers: {headers}, Content: {contents}"},
+        ],
+        model="gpt-4o-2024-08-06",
+    )
+    return chat_completion.choices[0].message.content
 
 start()
 
